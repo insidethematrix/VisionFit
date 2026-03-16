@@ -11,14 +11,19 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 
+import com.example.visionfit.analyzer.PoseAnalyzer;
+import com.example.visionfit.overlay.GraphicOverlay;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Main entry point of the application.
@@ -29,6 +34,10 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "VisionFitApp";
     private PreviewView previewView;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+    private GraphicOverlay graphicOverlay; // YENİ: Overlay referansı
+
+    // YENİ: Görüntü analizi arka planda yapılmalı, ana thread donmasın diye.
+    private ExecutorService cameraExecutor;
 
     /**
      * Permission launcher to handle the result of the camera permission request.
@@ -39,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     startCamera();
                 } else {
-                    Toast.makeText(this, "Kamera izni gerekli!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Camera permission required!", Toast.LENGTH_LONG).show();
                 }
             });
 
@@ -50,6 +59,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Bind the PreviewView from the layout (used for displaying the camera feed)
         previewView = findViewById(R.id.previewView);
+
+        // YENİ: XML'deki çizim alanını koda bağlıyoruz.
+        graphicOverlay = findViewById(R.id.graphicOverlay);
+
+        // YENİ: Arka plan işçisini (Thread) işe alıyoruz.
+        cameraExecutor = Executors.newSingleThreadExecutor();
 
         // Check if camera permission is already granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -90,12 +105,25 @@ public class MainActivity extends AppCompatActivity {
         // Connect the Preview use case to the PreviewView
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build();
+
+        imageAnalysis.setAnalyzer(cameraExecutor, new PoseAnalyzer(graphicOverlay));
+
         try {
             // Unbind any previous use cases before rebinding
             cameraProvider.unbindAll();
-            cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+            cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
         } catch (Exception e) {
             Log.e(TAG, "Use case binding failed", e);
+        }
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cameraExecutor != null) {
+            cameraExecutor.shutdown();
         }
     }
 }

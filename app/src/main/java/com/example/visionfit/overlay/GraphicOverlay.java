@@ -21,8 +21,10 @@ public class GraphicOverlay extends View{
     private final Object lock = new Object();
 
     // Scaling factors used to transform camera coordinates to screen coordinates.
-    private float widthScaleFactor = 1.0f;
-    private float heightScaleFactor = 1.0f;
+    private float scaleFactor = 1.0f;
+    private float postScaleWidthOffset = 0;
+    private float postScaleHeightOffset = 0;
+    private boolean isImageFlipped = false;
     private int previewWidth;
     private int previewHeight;
     public GraphicOverlay(Context context, AttributeSet attrs) {
@@ -54,10 +56,11 @@ public class GraphicOverlay extends View{
      * Updates the camera preview dimensions.
      * This is crucial for calculating the correct scaling factors.
      */
-    public void setCameraInfo(int previewWidth, int previewHeight){
+    public void setCameraInfo(int previewWidth, int previewHeight, boolean isFlipped){
         synchronized (lock){
             this.previewWidth=previewWidth;
             this.previewHeight=previewHeight;
+            this.isImageFlipped=isFlipped;
         }
         postInvalidate();
     }
@@ -67,8 +70,20 @@ public class GraphicOverlay extends View{
         synchronized (lock){
             // Calculate scale factors: Screen Dimension / Camera Dimension
             if (previewWidth!=0 && previewHeight!=0){
-                widthScaleFactor=(float) getWidth()/previewWidth;
-                heightScaleFactor=(float) getHeight()/previewHeight;
+                float viewAspectRatio = (float) getWidth() / getHeight();
+                float imageAspectratio = (float) previewWidth / previewHeight;
+
+                if(viewAspectRatio > imageAspectratio){
+                    scaleFactor = (float) getWidth() / previewWidth;
+                }
+                else{
+                    scaleFactor = (float) getHeight() / previewHeight;
+                }
+                float scaledWidth = previewWidth * scaleFactor;
+                float scaleHeight = previewHeight * scaleFactor;
+
+                postScaleWidthOffset = (getWidth() - scaledWidth) / 2;
+                postScaleHeightOffset = (getHeight() - scaleHeight) / 2;
             }
             // Iterate through the list and draw each graphic object on the canvas.
             for (Graphic graphic : graphics){
@@ -80,11 +95,16 @@ public class GraphicOverlay extends View{
 
     // Helper methods to translate camera coordinates to screen coordinates.
     public float translateX(float x) {
-        return x * widthScaleFactor;
+        if(isImageFlipped){
+            return  getWidth() - (x * scaleFactor + postScaleWidthOffset);
+        }
+        else{
+            return x * scaleFactor + postScaleWidthOffset;
+        }
     }
 
     public float translateY(float y) {
-        return y * heightScaleFactor;
+        return y * scaleFactor + postScaleHeightOffset;
     }
 
     /**

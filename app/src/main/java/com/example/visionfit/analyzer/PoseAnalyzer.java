@@ -42,6 +42,15 @@ public class PoseAnalyzer implements ImageAnalysis.Analyzer {
             // We must pass this rotation info to ML Kit so it "sees" the person upright.
             int rotationDegrees = imageProxy.getImageInfo().getRotationDegrees();
 
+            boolean isPortrait = rotationDegrees == 90 || rotationDegrees == 270;
+
+            if(isPortrait){
+                overlay.setCameraInfo(mediaImage.getHeight() , mediaImage.getWidth(),false);
+            }
+            else{
+                overlay.setCameraInfo(mediaImage.getWidth() , mediaImage.getHeight() , false);
+            }
+
             InputImage image = InputImage.fromMediaImage(mediaImage, rotationDegrees);
 
             poseDetector.process(image).addOnSuccessListener(pose -> {

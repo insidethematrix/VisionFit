@@ -43,9 +43,28 @@ public class PoseGraphic extends GraphicOverlay.Graphic {
             canvas.drawCircle(x, y, 10.0f, dotPaint);
         }
 
+
+        // --- TORSO ---
         drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER), pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_HIP), pose.getPoseLandmark(PoseLandmark.RIGHT_HIP));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER), pose.getPoseLandmark(PoseLandmark.LEFT_HIP));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER), pose.getPoseLandmark(PoseLandmark.RIGHT_HIP));
+
+        // --- LEFT ARM ---
         drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER), pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW));
-        // ... (other lines will go here)
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_ELBOW), pose.getPoseLandmark(PoseLandmark.LEFT_WRIST));
+
+        // --- RIGHT ARM ---
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER), pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.RIGHT_ELBOW), pose.getPoseLandmark(PoseLandmark.RIGHT_WRIST));
+
+        // --- LEFT LEG ---
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_HIP), pose.getPoseLandmark(PoseLandmark.LEFT_KNEE));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.LEFT_KNEE), pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE));
+
+        // --- RIGHT LEG ---
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.RIGHT_HIP), pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE));
+        drawLine(canvas, pose.getPoseLandmark(PoseLandmark.RIGHT_KNEE), pose.getPoseLandmark(PoseLandmark.RIGHT_ANKLE));
 
     }
 
