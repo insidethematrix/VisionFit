@@ -18,9 +18,19 @@ public class PoseAnalyzer implements ImageAnalysis.Analyzer {
     private final PoseDetector poseDetector;
     // The transparent layer where we will draw the skeleton results
     private final GraphicOverlay overlay;
+    // The engine that analyzes squat logic
+    private final SquatAnalyzer squatAnalyzer;
 
-    public PoseAnalyzer(GraphicOverlay overlay) {
+    // Interface to communicate with MainActivity
+    public interface PoseAnalyzerListener {
+        void onSquatUpdated(int count, String feedback);
+    }
+    private PoseAnalyzerListener listener;
+
+    public PoseAnalyzer(GraphicOverlay overlay, PoseAnalyzerListener listener) {
         this.overlay = overlay;
+        this.listener = listener;
+        this.squatAnalyzer = new SquatAnalyzer();
 
         // Configuring the detector for optimal performance in a video stream
         PoseDetectorOptions options = new PoseDetectorOptions.Builder()
@@ -54,9 +64,19 @@ public class PoseAnalyzer implements ImageAnalysis.Analyzer {
             InputImage image = InputImage.fromMediaImage(mediaImage, rotationDegrees);
 
             poseDetector.process(image).addOnSuccessListener(pose -> {
+                // 1. Draw the skeleton
                 overlay.clear();
                 overlay.add(new PoseGraphic(overlay, pose));
                 overlay.postInvalidate();
+
+                // 2. Analyze the pose for squats
+                squatAnalyzer.processPose(pose);
+
+                // 3. Send updates back to UI
+                if (listener != null) {
+                    listener.onSquatUpdated(squatAnalyzer.getSquatCount(), squatAnalyzer.getFeedback());
+                }
+
             }).addOnFailureListener(e -> {
                 e.printStackTrace();
             }).addOnCompleteListener(task -> {

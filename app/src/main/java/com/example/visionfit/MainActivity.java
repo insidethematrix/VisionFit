@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -36,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private GraphicOverlay graphicOverlay; // YENİ: Overlay referansı
 
+    private TextView tvSquatCount;
+    private TextView tvFeedback;
+
     // YENİ: Görüntü analizi arka planda yapılmalı, ana thread donmasın diye.
     private ExecutorService cameraExecutor;
 
@@ -62,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
 
         // YENİ: XML'deki çizim alanını koda bağlıyoruz.
         graphicOverlay = findViewById(R.id.graphicOverlay);
+
+        tvSquatCount = findViewById(R.id.tvSquatCount);
+        tvFeedback = findViewById(R.id.tvFeedback);
 
         // YENİ: Arka plan işçisini (Thread) işe alıyoruz.
         cameraExecutor = Executors.newSingleThreadExecutor();
@@ -109,7 +116,15 @@ public class MainActivity extends AppCompatActivity {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build();
 
-        imageAnalysis.setAnalyzer(cameraExecutor, new PoseAnalyzer(graphicOverlay));
+        PoseAnalyzer analyzer = new PoseAnalyzer(graphicOverlay, (count, feedback) -> {
+            // Update UI on the main thread
+            runOnUiThread(() -> {
+                tvSquatCount.setText("Squat: " + count);
+                tvFeedback.setText(feedback);
+            });
+        });
+
+        imageAnalysis.setAnalyzer(cameraExecutor, analyzer);
 
         try {
             // Unbind any previous use cases before rebinding
